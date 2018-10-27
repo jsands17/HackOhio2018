@@ -14,14 +14,13 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
-    var ball = SCNNode()
-    var pillar = SCNNode()
-    var plane = SCNNode()
-    var plane2 = SCNNode()
+//    var ball = SCNNode()
+//    var pillar = SCNNode()
+//    var plane = SCNNode()
+//    var plane2 = SCNNode()
     
-    var planeGeometry:SCNPlane!
-    var anchors = [ARAnchor]()
-    var sceneLight:SCNLight!
+    var detectedPlanes: [String : SCNNode] = [:]
+    var pillars: [SCNNode] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -36,8 +35,8 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.showsStatistics = true
         
         // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/InitialScene.scn")!
-        
+        //let scene = SCNScene(named: "art.scnassets/InitialScene.scn")!
+        let scene = SCNScene()
         // Set the scene to the view
         sceneView.scene = scene
         
@@ -46,19 +45,19 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                 ARSCNDebugOptions.showFeaturePoints.rawValue)
 
         
-        let wait:SCNAction = SCNAction.wait(duration: 3)
-        let runAfter:SCNAction = SCNAction.run { _ in
-            self.addSceneContent()
-        }
-        
-        let seq:SCNAction = SCNAction.sequence([wait, runAfter])
-        sceneView.scene.rootNode.runAction(seq)
+//        let wait:SCNAction = SCNAction.wait(duration: 3)
+//        let runAfter:SCNAction = SCNAction.run { _ in
+//            self.addSceneContent()
+//        }
+//
+//        let seq:SCNAction = SCNAction.sequence([wait, runAfter])
+//        sceneView.scene.rootNode.runAction(seq)
         
         let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(sender:)))
         self.sceneView.addGestureRecognizer(tapGestureRecognizer)
     }
     
-    @objc func handleTap(sender: UITapGestureRecognizer) {
+    /*@objc func handleTap(sender: UITapGestureRecognizer) {
         let touchLocation = sender.location(in: sceneView)
         
         let hitTestResult = sceneView.hitTest(touchLocation, options: [:])
@@ -69,9 +68,17 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                 }
             }
         }
+    }*/
+    
+    @objc func handleTap(sender: UITapGestureRecognizer) {
+        let configuration = ARWorldTrackingConfiguration()
+        sceneView.session.run(configuration)
+        
+        let location = sender.location(in: sceneView)
+        addPillar(location: location)
     }
     
-    func addSceneContent() {
+    /*func addSceneContent() {
         let initialNode = sceneView.scene.rootNode.childNode(withName: "rootNode", recursively: false)
         initialNode?.position = SCNVector3(0, -1, 0)
         
@@ -99,7 +106,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                 plane2.physicsBody?.restitution = 1
             }
         }
-    }
+    }*/
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -121,68 +128,77 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     
 
-    func launchBall() {
+    /*func launchBall() {
         ball.physicsBody?.applyForce(SCNVector3Make(0, 0, -3), asImpulse: true)
-    }
+    }*/
     
-    func addPillar(locationAnchor: ARPlaneAnchor) {
-        pillar.geometry = SCNCylinder(radius: 0.09, height: 1)
-        pillar.geometry?.firstMaterial?.diffuse.contents = UIColor.white
+    func addPillar(location: CGPoint) {
+        guard let hitTestResult = sceneView.hitTest(location, types: .existingPlane).first else { return }
+        let currentPosition = SCNVector3Make(hitTestResult.worldTransform.columns.3.x,
+                                             hitTestResult.worldTransform.columns.3.y,
+                                             hitTestResult.worldTransform.columns.3.z)
+        // 3
+        let pillarGeometry = SCNCylinder(radius: 0.1, height: 0.5)
+        pillarGeometry.firstMaterial?.diffuse.contents = UIColor.green
+        let pillarNode = SCNNode(geometry: pillarGeometry)
+        pillarNode.position = SCNVector3Make(currentPosition.x,
+                                             currentPosition.y + (Float(pillarGeometry.height) / 2),
+                                             currentPosition.z)
         
-        pillar.position = SCNVector3(locationAnchor.center.x, 0, locationAnchor.center.z)
+        pillarNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        pillarNode.physicsBody?.mass = 2.0
+        pillarNode.physicsBody?.friction = 0.8
         
-        sceneView.scene.rootNode.addChildNode(pillar)
+        sceneView.scene.rootNode.addChildNode(pillarNode)
+        // 4
+        pillars.append(pillarNode)
     }
     
     // MARK: - ARSCNViewDelegate
     
 
-    //Override to create and configure nodes for anchors added to the view's session.
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        var node:SCNNode?
-        
-        if let planeAnchor = anchor as? ARPlaneAnchor {
-            node = SCNNode()
-            planeGeometry = SCNPlane(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z))
-            planeGeometry.firstMaterial?.diffuse.contents = UIColor.white.withAlphaComponent(0.5)
-            
-            let planeNode = SCNNode(geometry: planeGeometry)
-            planeNode.position = SCNVector3(x: planeAnchor.center.x, y:0, z: planeAnchor.center.z)
-            planeNode.transform = SCNMatrix4MakeRotation(-Float.pi / 2, 1, 0, 0)
-            planeNode.physicsBody = SCNPhysicsBody(type: .static, shape: SCNPhysicsShape(geometry: planeGeometry, options: nil))
-            //updateMaterial()
-            addPillar(locationAnchor: planeAnchor)
-            node?.addChildNode(planeNode)
-            anchors.append(planeAnchor)
-        }
-        
-        return node
-    }
     
+    
+    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        // 1
+        guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
+        // 2
+        let plane = SCNPlane(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z))
+        let planeNode = SCNNode(geometry: plane)
+        planeNode.position = SCNVector3Make(planeAnchor.center.x,
+                                            planeAnchor.center.y,
+                                            planeAnchor.center.z)
+        // 3
+        planeNode.opacity = 0.3
+        // 4
+        planeNode.rotation = SCNVector4Make(1, 0, 0, -Float.pi / 2.0)
+        
+
+        let box = SCNBox(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z), length: 0.001, chamferRadius: 0)
+        
+        planeNode.physicsBody = SCNPhysicsBody(type: .static, shape: SCNPhysicsShape(geometry: box, options: nil))
+        
+        node.addChildNode(planeNode)
+        // 5
+        detectedPlanes[planeAnchor.identifier.uuidString] = planeNode
+    }
     
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-        if let planeAnchor = anchor as? ARPlaneAnchor {
-            if anchors.contains(planeAnchor) {
-                if node.childNodes.count > 0 {
-                    let planeNode = node.childNodes.first!
-                    planeNode.position = SCNVector3(x: planeAnchor.center.x, y: 0, z: planeAnchor.center.z)
-                    
-                    if let plane = planeNode.geometry as? SCNPlane {
-                        plane.width = CGFloat(planeAnchor.extent.x)
-                        plane.height = CGFloat(planeAnchor.extent.z)
-                        
-                        //updateMaterial()
-                    }
-                }
-            }
-        }
-    }
-    
-    func updateMaterial() {
-        let material = self.planeGeometry.materials.first!
+        // 1
+        guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
+        // 2
+        guard let planeNode = detectedPlanes[planeAnchor.identifier.uuidString] else { return }
+        let planeGeometry = planeNode.geometry as! SCNPlane
+        planeGeometry.width = CGFloat(planeAnchor.extent.x)
+        planeGeometry.height = CGFloat(planeAnchor.extent.z)
+        planeNode.position = SCNVector3Make(planeAnchor.center.x,
+                                            planeAnchor.center.y,
+                                            planeAnchor.center.z)
         
-        material.diffuse.contentsTransform = SCNMatrix4MakeScale(Float(self.planeGeometry.width), Float(self.planeGeometry.height), 1)
+        let box = SCNBox(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z), length: 0.001, chamferRadius: 0)
+        planeNode.physicsBody?.physicsShape = SCNPhysicsShape(geometry: box, options: nil)
     }
+
     
     func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
