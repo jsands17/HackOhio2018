@@ -14,6 +14,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
+    var ball = SCNNode()
+    var plane = SCNNode()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -24,10 +27,34 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.showsStatistics = true
         
         // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
+        let scene = SCNScene(named: "art.scnassets/InitialScene.scn")!
         
         // Set the scene to the view
         sceneView.scene = scene
+        
+        let initialNode = scene.rootNode.childNode(withName: "rootNode", recursively: false)
+        initialNode?.position = SCNVector3(0, -1, 0)
+        
+        self.sceneView.scene.rootNode.enumerateChildNodes{ (node, _) in
+            
+            if (node.name == "movingSphere") {
+                
+                ball = node
+                ball.physicsBody = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(node: ball))
+                ball.physicsBody?.isAffectedByGravity = true
+                ball.physicsBody?.restitution = 1
+                
+                
+                
+            } else if (node.name == "stillPlane") {
+                
+                plane = node
+                let boxShape:SCNPhysicsShape = SCNPhysicsShape(geometry: plane.geometry!, options: nil)
+                plane.physicsBody = SCNPhysicsBody(type: .static, shape: boxShape)
+                plane.physicsBody?.restitution = 1
+            }
+            
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
