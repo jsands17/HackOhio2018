@@ -14,9 +14,11 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     @IBOutlet var sceneView: ARSCNView!
     @IBOutlet weak var togglePillarButton: UIButton!
+    @IBOutlet weak var sphereButton: UIButton!
+    @IBOutlet weak var coneButton: UIButton!
     
+    var objectSelector = 0
     var ball = SCNNode()
-    var pillarDrop: Bool! = true
     var placeBall: Bool! = true
     var ballDistanceFromCamera: Float = 1
     
@@ -60,21 +62,31 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     @objc func handleTap(sender: UITapGestureRecognizer) {
-        if pillarDrop {
+        switch objectSelector {
+        case 0:
             dropPillar(sender: sender)
-        } else {
+            break
+        case 1:
+            dropBall(sender: sender)
+            break
+        case 2:
+            dropCone(sender: sender)
+            break
+        default:
             dropBall(sender: sender)
         }
     }
     
-    @IBAction func togglePillarDrop(_ sender: Any) {
-        togglePillarButton.setTitle(pillarDrop ? "Add Pillar" : "Add Ball", for: .normal)
-        pillarDrop = !pillarDrop
-    }
-    
     /*/////////////////////////////////////////////////////
      Pillar Functions
-    **///////////////////////////////////////////////////
+     **///////////////////////////////////////////////////
+    @IBAction func selectPillars(_ sender: Any) {
+        objectSelector = 0
+        coneButton.backgroundColor = UIColor.init(red: 0, green: 0, blue: 0, alpha: 0)
+        togglePillarButton.backgroundColor = UIColor.init(red: 0, green: 0, blue: 0, alpha: 0.2)
+        sphereButton.backgroundColor = UIColor.init(red: 0, green: 0, blue: 0, alpha: 0)
+    }
+    
     func dropPillar(sender: UITapGestureRecognizer) {
         let configuration = ARWorldTrackingConfiguration()
         sceneView.session.run(configuration)
@@ -89,29 +101,36 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                                              hitTestResult.worldTransform.columns.3.y,
                                              hitTestResult.worldTransform.columns.3.z)
         
-        let pillarGeometry = SCNCylinder(radius: 0.1, height: 0.5)
-        pillarGeometry.firstMaterial?.diffuse.contents = UIColor.green
-        let pillarNode = SCNNode(geometry: pillarGeometry)
-        pillarNode.position = SCNVector3Make(currentPosition.x,
-                                             currentPosition.y + (Float(pillarGeometry.height) / 2),
+        let coneGeometry = SCNCone(topRadius: 0, bottomRadius: 0.05, height: 1.5)
+        coneGeometry.firstMaterial?.diffuse.contents = UIColor.red
+        let coneNode = SCNNode(geometry: coneGeometry)
+        coneNode.position = SCNVector3Make(currentPosition.x,
+                                             currentPosition.y + (Float(coneGeometry.height) / 2),
                                              currentPosition.z)
         
-        pillarNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
-        pillarNode.physicsBody?.mass = 2.0
-        pillarNode.physicsBody?.friction = 0.8
-        pillarNode.runAction(SCNAction.customAction(duration: 0.5, action: { (node, elapsedTime) -> () in
+        coneNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        coneNode.physicsBody?.mass = 2.0
+        coneNode.physicsBody?.friction = 0.8
+        coneNode.runAction(SCNAction.customAction(duration: 0.5, action: { (node, elapsedTime) -> () in
             if(node.position.y < -2) {
                 node.removeFromParentNode()
             }
             print("Pillar is alive.")
         }))
-        sceneView.scene.rootNode.addChildNode(pillarNode)
-        pillars.append(pillarNode)
+        sceneView.scene.rootNode.addChildNode(coneNode)
+        pillars.append(coneNode)
     }
     
     /*/////////////////////////////////////////////////////
      Ball Functions
      **///////////////////////////////////////////////////
+    @IBAction func selectBalls(_ sender: Any) {
+        objectSelector = 1
+        coneButton.backgroundColor = UIColor.init(red: 0, green: 0, blue: 0, alpha: 0)
+        togglePillarButton.backgroundColor = UIColor.init(red: 0, green: 0, blue: 0, alpha: 0)
+        sphereButton.backgroundColor = UIColor.init(red: 0, green: 0, blue: 0, alpha: 0.2)
+    }
+    
     func dropBall(sender: UITapGestureRecognizer) {
         let touchLocation = sender.location(in: sceneView)
         
@@ -119,7 +138,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             let cameraDir:SCNVector3 = getUserVector().0
             let cameraPos:SCNVector3 = getUserVector().1
             
-            ball.removeFromParentNode()
             let newBall = SCNNode()
             ball = newBall
             ball.geometry = SCNSphere(radius: 0.1)
@@ -129,7 +147,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             ball.position = SCNVector3Make(0, 0, -0.5)
             sceneView.pointOfView?.addChildNode(ball)
             placeBall = !placeBall
-
+            
             ball.position = SCNVector3Make(cameraPos.x + (cameraDir.x * ballDistanceFromCamera), cameraPos.y + (cameraDir.y * ballDistanceFromCamera), cameraPos.z + (cameraDir.z * ballDistanceFromCamera))
             sceneView.scene.rootNode.addChildNode(ball)
         } else {
@@ -156,6 +174,41 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         )
         placeBall = !placeBall
     }
+    
+    @IBAction func selectCone(_ sender: Any) {
+        objectSelector = 2
+        coneButton.backgroundColor = UIColor.init(red: 0, green: 0, blue: 0, alpha: 0.2)
+        togglePillarButton.backgroundColor = UIColor.init(red: 0, green: 0, blue: 0, alpha: 0)
+        sphereButton.backgroundColor = UIColor.init(red: 0, green: 0, blue: 0, alpha: 0)
+    }
+    
+    func dropCone(sender: UITapGestureRecognizer) {
+        let location = sender.location(in: sceneView)
+        guard let hitTestResult = sceneView.hitTest(location, types: .existingPlane).first else { return }
+        let currentPosition = SCNVector3Make(hitTestResult.worldTransform.columns.3.x,
+                                             hitTestResult.worldTransform.columns.3.y,
+                                             hitTestResult.worldTransform.columns.3.z)
+        
+        let pillarGeometry = SCNCylinder(radius: 0.1, height: 0.5)
+        pillarGeometry.firstMaterial?.diffuse.contents = UIColor.green
+        let pillarNode = SCNNode(geometry: pillarGeometry)
+        pillarNode.position = SCNVector3Make(currentPosition.x,
+                                             currentPosition.y + (Float(pillarGeometry.height) / 2),
+                                             currentPosition.z)
+        
+        pillarNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        pillarNode.physicsBody?.mass = 2.0
+        pillarNode.physicsBody?.friction = 0.8
+        pillarNode.runAction(SCNAction.customAction(duration: 0.5, action: { (node, elapsedTime) -> () in
+            if(node.position.y < -2) {
+                node.removeFromParentNode()
+            }
+            print("Pillar is alive.")
+        }))
+        sceneView.scene.rootNode.addChildNode(pillarNode)
+        pillars.append(pillarNode)
+    }
+    
     
     /*/////////////////////////////////////////////////////
      Load Scene and Renderer Functions
