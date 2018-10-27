@@ -16,6 +16,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     var ball = SCNNode()
     var plane = SCNNode()
+    var plane2 = SCNNode()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,7 +33,35 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Set the scene to the view
         sceneView.scene = scene
         
-        let initialNode = scene.rootNode.childNode(withName: "rootNode", recursively: false)
+
+        
+        let wait:SCNAction = SCNAction.wait(duration: 3)
+        let runAfter:SCNAction = SCNAction.run { _ in
+            self.addSceneContent()
+        }
+        
+        let seq:SCNAction = SCNAction.sequence([wait, runAfter])
+        sceneView.scene.rootNode.runAction(seq)
+        
+        let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(sender:)))
+        self.sceneView.addGestureRecognizer(tapGestureRecognizer)
+    }
+    
+    @objc func handleTap(sender: UITapGestureRecognizer) {
+        let touchLocation = sender.location(in: sceneView)
+        
+        let hitTestResult = sceneView.hitTest(touchLocation, options: [:])
+        if !hitTestResult.isEmpty {
+            for hitResult in hitTestResult {
+                if (hitResult.node == ball) {
+                    launchBall()
+                }
+            }
+        }
+    }
+    
+    func addSceneContent() {
+        let initialNode = sceneView.scene.rootNode.childNode(withName: "rootNode", recursively: false)
         initialNode?.position = SCNVector3(0, -1, 0)
         
         self.sceneView.scene.rootNode.enumerateChildNodes{ (node, _) in
@@ -45,15 +74,19 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                 ball.physicsBody?.restitution = 1
                 
                 
-                
             } else if (node.name == "stillPlane") {
                 
                 plane = node
                 let boxShape:SCNPhysicsShape = SCNPhysicsShape(geometry: plane.geometry!, options: nil)
                 plane.physicsBody = SCNPhysicsBody(type: .static, shape: boxShape)
                 plane.physicsBody?.restitution = 1
+            } else if (node.name == "plane2") {
+                
+                plane2 = node
+                let boxShape:SCNPhysicsShape = SCNPhysicsShape(geometry: plane2.geometry!, options: nil)
+                plane2.physicsBody = SCNPhysicsBody(type: .static, shape: boxShape)
+                plane2.physicsBody?.restitution = 1
             }
-            
         }
     }
     
@@ -73,7 +106,13 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Pause the view's session
         sceneView.session.pause()
     }
+    
+    
 
+    func launchBall() {
+        ball.physicsBody?.applyForce(SCNVector3Make(0, 0, -3), asImpulse: true)
+    }
+    
     // MARK: - ARSCNViewDelegate
     
 /*
