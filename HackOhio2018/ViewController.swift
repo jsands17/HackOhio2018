@@ -69,6 +69,51 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         }
     }
     
+    @IBAction func togglePillarDrop(_ sender: Any) {
+        togglePillarButton.setTitle(pillarDrop ? "Add Pillar" : "Add Ball", for: .normal)
+        pillarDrop = !pillarDrop
+    }
+    
+    /*/////////////////////////////////////////////////////
+     Pillar Functions
+    **///////////////////////////////////////////////////
+    func dropPillar(sender: UITapGestureRecognizer) {
+        let configuration = ARWorldTrackingConfiguration()
+        sceneView.session.run(configuration)
+        
+        let location = sender.location(in: sceneView)
+        addPillar(location: location)
+    }
+    
+    func addPillar(location: CGPoint) {
+        guard let hitTestResult = sceneView.hitTest(location, types: .existingPlane).first else { return }
+        let currentPosition = SCNVector3Make(hitTestResult.worldTransform.columns.3.x,
+                                             hitTestResult.worldTransform.columns.3.y,
+                                             hitTestResult.worldTransform.columns.3.z)
+        
+        let pillarGeometry = SCNCylinder(radius: 0.1, height: 0.5)
+        pillarGeometry.firstMaterial?.diffuse.contents = UIColor.green
+        let pillarNode = SCNNode(geometry: pillarGeometry)
+        pillarNode.position = SCNVector3Make(currentPosition.x,
+                                             currentPosition.y + (Float(pillarGeometry.height) / 2),
+                                             currentPosition.z)
+        
+        pillarNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        pillarNode.physicsBody?.mass = 2.0
+        pillarNode.physicsBody?.friction = 0.8
+        pillarNode.runAction(SCNAction.customAction(duration: 0.5, action: { (node, elapsedTime) -> () in
+            if(node.position.y < -2) {
+                node.removeFromParentNode()
+            }
+            print("Pillar is alive.")
+        }))
+        sceneView.scene.rootNode.addChildNode(pillarNode)
+        pillars.append(pillarNode)
+    }
+    
+    /*/////////////////////////////////////////////////////
+     Ball Functions
+     **///////////////////////////////////////////////////
     func dropBall(sender: UITapGestureRecognizer) {
         let touchLocation = sender.location(in: sceneView)
         
@@ -99,16 +144,24 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 }
             }
         }
-        
     }
     
-    func dropPillar(sender: UITapGestureRecognizer) {
-        let configuration = ARWorldTrackingConfiguration()
-        sceneView.session.run(configuration)
+    func launchBall() {
+        let cameraDir:SCNVector3 = getUserVector().0
+        ball.physicsBody?.applyForce(SCNVector3Make(cameraDir.x * ballImpulse, cameraDir.y * ballImpulse, cameraDir.z * ballImpulse), asImpulse: true)
         
-        let location = sender.location(in: sceneView)
-        addPillar(location: location)
+        ball.physicsBody?.applyForce(SCNVector3Make(cameraDir.x * 10, cameraDir.y * 10, cameraDir.z * 10), asImpulse: true)
+        ball.runAction(SCNAction.sequence([
+            SCNAction.wait(duration: 5.0),
+            SCNAction.removeFromParentNode()
+            ])
+        )
+        placeBall = !placeBall
     }
+    
+    /*/////////////////////////////////////////////////////
+     Load Scene and Renderer Functions
+     **///////////////////////////////////////////////////
     
     func addSceneContent() {
         let initialNode = sceneView.scene.rootNode.childNode(withName: "rootNode", recursively: false)
@@ -118,55 +171,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         }
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        
-        // Create a session configuration
-        let configuration = ARWorldTrackingConfiguration()
-        configuration.planeDetection = .horizontal
-        
-        // Run the view's session
-        sceneView.session.run(configuration)
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        
-        // Pause the view's session
-        sceneView.session.pause()
-    }
-    
-    func launchBall() {
-        let cameraDir:SCNVector3 = getUserVector().0
-        ball.physicsBody?.applyForce(SCNVector3Make(cameraDir.x * ballImpulse, cameraDir.y * ballImpulse, cameraDir.z * ballImpulse), asImpulse: true)
-        placeBall = !placeBall
-    }
-    
-    func addPillar(location: CGPoint) {
-        guard let hitTestResult = sceneView.hitTest(location, types: .existingPlane).first else { return }
-        let currentPosition = SCNVector3Make(hitTestResult.worldTransform.columns.3.x,
-                                             hitTestResult.worldTransform.columns.3.y,
-                                             hitTestResult.worldTransform.columns.3.z)
-        
-        let pillarGeometry = SCNCylinder(radius: 0.1, height: 0.5)
-        pillarGeometry.firstMaterial?.diffuse.contents = UIColor.green
-        let pillarNode = SCNNode(geometry: pillarGeometry)
-        pillarNode.position = SCNVector3Make(currentPosition.x,
-                                             currentPosition.y + (Float(pillarGeometry.height) / 2),
-                                             currentPosition.z)
-        
-        pillarNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
-        pillarNode.physicsBody?.mass = 2.0
-        pillarNode.physicsBody?.friction = 0.8
-        
-        sceneView.scene.rootNode.addChildNode(pillarNode)
-        pillars.append(pillarNode)
-    }
-    
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
         
         guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
-
+        
         let plane = SCNPlane(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z))
         let planeNode = SCNNode(geometry: plane)
         planeNode.position = SCNVector3Make(planeAnchor.center.x,
@@ -200,10 +208,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         planeNode.physicsBody?.physicsShape = SCNPhysicsShape(geometry: box, options: nil)
     }
     
-    @IBAction func togglePillarDrop(_ sender: Any) {
-        togglePillarButton.setTitle(pillarDrop ? "Add Pillar" : "Add Ball", for: .normal)
-        pillarDrop = !pillarDrop
-    }
+    /*/////////////////////////////////////////////////////
+     Helper Functions
+     **///////////////////////////////////////////////////
     
     func getUserVector() -> (SCNVector3, SCNVector3) { // (direction, position)
         if let frame = self.sceneView.session.currentFrame {
@@ -216,6 +223,31 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         return (SCNVector3(0, 0, -1), SCNVector3(0, 0, -0.2))
     }
     
+    /*/////////////////////////////////////////////////////
+     View Functions
+     **///////////////////////////////////////////////////
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        // Create a session configuration
+        let configuration = ARWorldTrackingConfiguration()
+        configuration.planeDetection = .horizontal
+        
+        // Run the view's session
+        sceneView.session.run(configuration)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        // Pause the view's session
+        sceneView.session.pause()
+    }
+    
+    /*/////////////////////////////////////////////////////
+     Session Functions
+     **///////////////////////////////////////////////////
     
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
         cameraLoc = frame.camera.transform.columns.3
@@ -223,16 +255,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
-        
     }
     
     func sessionWasInterrupted(_ session: ARSession) {
         // Inform the user that the session has been interrupted, for example, by presenting an overlay
-        
     }
     
     func sessionInterruptionEnded(_ session: ARSession) {
         // Reset tracking and/or remove existing anchors if consistent tracking is required
-        
     }
 }
