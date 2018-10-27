@@ -10,19 +10,22 @@ import UIKit
 import SceneKit
 import ARKit
 
-class ViewController: UIViewController, ARSCNViewDelegate {
+class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
     var ball = SCNNode()
     var plane = SCNNode()
     var plane2 = SCNNode()
+    var pillar = SCNNode()
+    
+    var cameraLoc: float4!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         // Set the view's delegate
-        sceneView.delegate = self
+        sceneView.session.delegate = self
         
         // Show statistics such as fps and timing information
         sceneView.showsStatistics = true
@@ -32,10 +35,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Set the scene to the view
         sceneView.scene = scene
+        sceneView.delegate = self
         
-
-        
-        let wait:SCNAction = SCNAction.wait(duration: 3)
+        let wait:SCNAction = SCNAction.wait(duration: 2)
         let runAfter:SCNAction = SCNAction.run { _ in
             self.addSceneContent()
         }
@@ -86,6 +88,13 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                 let boxShape:SCNPhysicsShape = SCNPhysicsShape(geometry: plane2.geometry!, options: nil)
                 plane2.physicsBody = SCNPhysicsBody(type: .static, shape: boxShape)
                 plane2.physicsBody?.restitution = 1
+            } else if (node.name == "pillar") {
+                
+                pillar = node
+                let pillarShape:SCNPhysicsShape = SCNPhysicsShape(geometry: pillar.geometry!, options: nil)
+                pillar.physicsBody = SCNPhysicsBody(type: .dynamic, shape: pillarShape)
+                pillar.physicsBody?.mass = 10
+                pillar.physicsBody?.restitution = 1
             }
         }
     }
@@ -110,7 +119,13 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
 
     func launchBall() {
-        ball.physicsBody?.applyForce(SCNVector3Make(0, 0, -3), asImpulse: true)
+        let x = cameraLoc.x
+        let y = cameraLoc.y
+        let z = cameraLoc.z
+        let ballx = ball.position.x
+        let bally = ball.position.y
+        let ballz = ball.position.z
+        ball.physicsBody?.applyForce(SCNVector3Make(ballx-x, bally-y, ballz-z), asImpulse: true)
     }
     
     // MARK: - ARSCNViewDelegate
@@ -123,6 +138,11 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         return node
     }
 */
+    
+    func session(_ session: ARSession, didUpdate frame: ARFrame) {
+        print("Updating")
+        cameraLoc = frame.camera.transform.columns.3
+    }
     
     func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
