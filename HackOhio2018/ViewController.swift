@@ -15,14 +15,22 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     @IBOutlet var sceneView: ARSCNView!
     
     var ball = SCNNode()
+    var pillar = SCNNode()
     var plane = SCNNode()
     var plane2 = SCNNode()
+    
+    var planeGeometry:SCNPlane!
+    var anchors = [ARAnchor]()
+    var sceneLight:SCNLight!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         // Set the view's delegate
         sceneView.delegate = self
+        
+        let configuration = ARWorldTrackingConfiguration()
+        configuration.planeDetection = .horizontal
         
         // Show statistics such as fps and timing information
         sceneView.showsStatistics = true
@@ -98,6 +106,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Create a session configuration
         let configuration = ARWorldTrackingConfiguration()
+        configuration.planeDetection = .horizontal
 
         // Run the view's session
         sceneView.session.run(configuration)
@@ -116,16 +125,64 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         ball.physicsBody?.applyForce(SCNVector3Make(0, 0, -3), asImpulse: true)
     }
     
+    func addPillar(locationAnchor: ARPlaneAnchor) {
+        pillar.geometry = SCNCylinder(radius: 0.09, height: 1)
+        pillar.geometry?.firstMaterial?.diffuse.contents = UIColor.white
+        
+        pillar.position = SCNVector3(locationAnchor.center.x, 0, locationAnchor.center.z)
+        
+        sceneView.scene.rootNode.addChildNode(pillar)
+    }
+    
     // MARK: - ARSCNViewDelegate
     
-/*
-    // Override to create and configure nodes for anchors added to the view's session.
+
+    //Override to create and configure nodes for anchors added to the view's session.
     func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        let node = SCNNode()
-     
+        var node:SCNNode?
+        
+        if let planeAnchor = anchor as? ARPlaneAnchor {
+            node = SCNNode()
+            planeGeometry = SCNPlane(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z))
+            planeGeometry.firstMaterial?.diffuse.contents = UIColor.white.withAlphaComponent(0.5)
+            
+            let planeNode = SCNNode(geometry: planeGeometry)
+            planeNode.position = SCNVector3(x: planeAnchor.center.x, y:0, z: planeAnchor.center.z)
+            planeNode.transform = SCNMatrix4MakeRotation(-Float.pi / 2, 1, 0, 0)
+            planeNode.physicsBody = SCNPhysicsBody(type: .static, shape: SCNPhysicsShape(geometry: planeGeometry, options: nil))
+            //updateMaterial()
+            addPillar(locationAnchor: planeAnchor)
+            node?.addChildNode(planeNode)
+            anchors.append(planeAnchor)
+        }
+        
         return node
     }
-*/
+    
+    
+    func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
+        if let planeAnchor = anchor as? ARPlaneAnchor {
+            if anchors.contains(planeAnchor) {
+                if node.childNodes.count > 0 {
+                    let planeNode = node.childNodes.first!
+                    planeNode.position = SCNVector3(x: planeAnchor.center.x, y: 0, z: planeAnchor.center.z)
+                    
+                    if let plane = planeNode.geometry as? SCNPlane {
+                        plane.width = CGFloat(planeAnchor.extent.x)
+                        plane.height = CGFloat(planeAnchor.extent.z)
+                        
+                        //updateMaterial()
+                    }
+                }
+            }
+        }
+    }
+    
+    func updateMaterial() {
+        let material = self.planeGeometry.materials.first!
+        
+        material.diffuse.contentsTransform = SCNMatrix4MakeScale(Float(self.planeGeometry.width), Float(self.planeGeometry.height), 1)
+    }
     
     func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
