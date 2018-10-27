@@ -18,6 +18,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var ball = SCNNode()
     var pillarDrop: Bool! = true
     var placeBall: Bool! = true
+    var ballDistanceFromCamera: Float = 1
     
     var cameraLoc: float4!
     var detectedPlanes: [String : SCNNode] = [:]
@@ -36,7 +37,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         sceneView.showsStatistics = true
         
         // Create a new scene
-        //let scene = SCNScene(named: "art.scnassets/InitialScene.scn")!
         let scene = SCNScene()
         // Set the scene to the view
         sceneView.scene = scene
@@ -71,8 +71,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         let touchLocation = sender.location(in: sceneView)
         
         if placeBall {
-            //let cameraDirAndPos:(SCNVector3, SCNVector3) = getUserVector()
-            //ball.position = SCNVector3(cameraDirAndPos.1.x + 2, <#T##y: CGFloat##CGFloat#>, <#T##z: CGFloat##CGFloat#>)
+            let cameraDir:SCNVector3 = getUserVector().0
+            let cameraPos:SCNVector3 = getUserVector().1
+            
             ball.removeFromParentNode()
             let newBall = SCNNode()
             ball = newBall
@@ -80,8 +81,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             ball.physicsBody = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(node: ball))
             ball.physicsBody?.isAffectedByGravity = false
             ball.physicsBody?.restitution = 1
-            ball.position = SCNVector3Make(0, 0, -0.5)
-            sceneView.pointOfView?.addChildNode(ball)
+            placeBall = !placeBall
+
+            ball.position = SCNVector3Make(cameraPos.x + (cameraDir.x * ballDistanceFromCamera), cameraPos.y + (cameraDir.y * ballDistanceFromCamera), cameraPos.z + (cameraDir.z * ballDistanceFromCamera))
+            sceneView.scene.rootNode.addChildNode(ball)
         } else {
             let hitTestResult = sceneView.hitTest(touchLocation, options: [:])
             if !hitTestResult.isEmpty {
@@ -93,7 +96,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 }
             }
         }
-        placeBall = !placeBall
+        
     }
     
     func dropPillar(sender: UITapGestureRecognizer) {
@@ -108,10 +111,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         let initialNode = sceneView.scene.rootNode.childNode(withName: "rootNode", recursively: false)
         initialNode?.position = SCNVector3(0, -1, 0)
         self.sceneView.scene.rootNode.enumerateChildNodes{ (node, _) in
-            if (node.name == "movingSphere") {
-                ball = node
-                
-            }
+            
         }
     }
     
@@ -134,23 +134,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     func launchBall() {
-//        let x = cameraLoc.x
-//        let y = cameraLoc.y
-//        let z = cameraLoc.z
-//        let ballx = ball.position.x
-//        let bally = ball.position.y
-//        let ballz = ball.position.z
-//        let diffx = (ballx - x)
-//        let diffy = (bally - y)
-//        let diffz = (ballz - z)
-//        let vector = SCNVector3Make(diffx, diffy, diffz)
-        
         let cameraDir:SCNVector3 = getUserVector().0
-
-        
         ball.physicsBody?.applyForce(SCNVector3Make(cameraDir.x * 10, cameraDir.y * 10, cameraDir.z * 10), asImpulse: true)
-        //print(x,y,z)
-        //print(ballx, bally, ballz)
+        placeBall = !placeBall
     }
     
     func addPillar(location: CGPoint) {
@@ -158,7 +144,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         let currentPosition = SCNVector3Make(hitTestResult.worldTransform.columns.3.x,
                                              hitTestResult.worldTransform.columns.3.y,
                                              hitTestResult.worldTransform.columns.3.z)
-        // 3
+        
         let pillarGeometry = SCNCylinder(radius: 0.1, height: 0.5)
         pillarGeometry.firstMaterial?.diffuse.contents = UIColor.green
         let pillarNode = SCNNode(geometry: pillarGeometry)
@@ -171,25 +157,19 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         pillarNode.physicsBody?.friction = 0.8
         
         sceneView.scene.rootNode.addChildNode(pillarNode)
-        // 4
         pillars.append(pillarNode)
     }
     
-    
-    
-    
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        // 1
+        
         guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
-        // 2
+
         let plane = SCNPlane(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z))
         let planeNode = SCNNode(geometry: plane)
         planeNode.position = SCNVector3Make(planeAnchor.center.x,
                                             planeAnchor.center.y,
                                             planeAnchor.center.z)
-        // 3
         planeNode.opacity = 0.3
-        // 4
         planeNode.rotation = SCNVector4Make(1, 0, 0, -Float.pi / 2.0)
         
         
@@ -198,15 +178,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         planeNode.physicsBody = SCNPhysicsBody(type: .static, shape: SCNPhysicsShape(geometry: box, options: nil))
         
         node.addChildNode(planeNode)
-        // 5
         detectedPlanes[planeAnchor.identifier.uuidString] = planeNode
     }
     
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-        // 1
         guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
-        // 2
         guard let planeNode = detectedPlanes[planeAnchor.identifier.uuidString] else { return }
+        
         let planeGeometry = planeNode.geometry as! SCNPlane
         planeGeometry.width = CGFloat(planeAnchor.extent.x)
         planeGeometry.height = CGFloat(planeAnchor.extent.z)
@@ -215,15 +193,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                                             planeAnchor.center.z)
         
         let box = SCNBox(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z), length: 0.001, chamferRadius: 0)
+        
         planeNode.physicsBody?.physicsShape = SCNPhysicsShape(geometry: box, options: nil)
     }
     
     @IBAction func togglePillarDrop(_ sender: Any) {
         togglePillarButton.setTitle(pillarDrop ? "Add Pillar" : "Add Ball", for: .normal)
         pillarDrop = !pillarDrop
-        
-        //print("x: ", cameraDirAndPos.0.x, "  y: ", cameraDirAndPos.0.y, "  z: ", cameraDirAndPos.0.z)
-        
     }
     
     func getUserVector() -> (SCNVector3, SCNVector3) { // (direction, position)
