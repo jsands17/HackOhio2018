@@ -33,6 +33,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Set the scene to the view
         sceneView.scene = scene
         
+        self.sceneView.debugOptions =
+            SCNDebugOptions(rawValue: ARSCNDebugOptions.showWorldOrigin.rawValue |
+                ARSCNDebugOptions.showFeaturePoints.rawValue)
 
         
         let wait:SCNAction = SCNAction.wait(duration: 3)
