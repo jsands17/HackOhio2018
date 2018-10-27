@@ -71,9 +71,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         let touchLocation = sender.location(in: sceneView)
         
         if placeBall {
-            //let cameraDirAndPos:(SCNVector3, SCNVector3) = getUserVector()
-            //ball.position = SCNVector3(cameraDirAndPos.1.x + 2, <#T##y: CGFloat##CGFloat#>, <#T##z: CGFloat##CGFloat#>)
-            ball.removeFromParentNode()
             let newBall = SCNNode()
             ball = newBall
             ball.geometry = SCNSphere(radius: 0.1)
@@ -82,6 +79,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             ball.physicsBody?.restitution = 1
             ball.position = SCNVector3Make(0, 0, -0.5)
             sceneView.pointOfView?.addChildNode(ball)
+            placeBall = !placeBall
         } else {
             let hitTestResult = sceneView.hitTest(touchLocation, options: [:])
             if !hitTestResult.isEmpty {
@@ -93,7 +91,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 }
             }
         }
-        placeBall = !placeBall
     }
     
     func dropPillar(sender: UITapGestureRecognizer) {
@@ -134,23 +131,15 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     func launchBall() {
-//        let x = cameraLoc.x
-//        let y = cameraLoc.y
-//        let z = cameraLoc.z
-//        let ballx = ball.position.x
-//        let bally = ball.position.y
-//        let ballz = ball.position.z
-//        let diffx = (ballx - x)
-//        let diffy = (bally - y)
-//        let diffz = (ballz - z)
-//        let vector = SCNVector3Make(diffx, diffy, diffz)
-        
         let cameraDir:SCNVector3 = getUserVector().0
 
-        
         ball.physicsBody?.applyForce(SCNVector3Make(cameraDir.x * 10, cameraDir.y * 10, cameraDir.z * 10), asImpulse: true)
-        //print(x,y,z)
-        //print(ballx, bally, ballz)
+        ball.runAction(SCNAction.sequence([
+            SCNAction.wait(duration: 5.0),
+            SCNAction.removeFromParentNode()
+            ])
+        )
+        placeBall = !placeBall
     }
     
     func addPillar(location: CGPoint) {
@@ -169,7 +158,12 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         pillarNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
         pillarNode.physicsBody?.mass = 2.0
         pillarNode.physicsBody?.friction = 0.8
-        
+        pillarNode.runAction(SCNAction.customAction(duration: 0.5, action: { (node, elapsedTime) -> () in
+            if(node.position.y < -2) {
+                node.removeFromParentNode()
+            }
+            print("Pillar is alive.")
+        }))
         sceneView.scene.rootNode.addChildNode(pillarNode)
         // 4
         pillars.append(pillarNode)
@@ -223,7 +217,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         pillarDrop = !pillarDrop
         
         //print("x: ", cameraDirAndPos.0.x, "  y: ", cameraDirAndPos.0.y, "  z: ", cameraDirAndPos.0.z)
-        
     }
     
     func getUserVector() -> (SCNVector3, SCNVector3) { // (direction, position)
@@ -240,6 +233,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
         cameraLoc = frame.camera.transform.columns.3
+        
     }
     
     func session(_ session: ARSession, didFailWithError error: Error) {
