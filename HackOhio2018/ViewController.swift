@@ -19,6 +19,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var pillarDrop: Bool! = true
     var placeBall: Bool! = true
     var ballDistanceFromCamera: Float = 1
+    var ballImpulse: Float = 45
     
     var cameraLoc: float4!
     var detectedPlanes: [String : SCNNode] = [:]
@@ -41,6 +42,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         // Set the scene to the view
         sceneView.scene = scene
         sceneView.delegate = self
+        sceneView.autoenablesDefaultLighting = true
         
         let wait:SCNAction = SCNAction.wait(duration: 2)
         let runAfter:SCNAction = SCNAction.run { _ in
@@ -50,9 +52,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         let seq:SCNAction = SCNAction.sequence([wait, runAfter])
         sceneView.scene.rootNode.runAction(seq)
         
-        self.sceneView.debugOptions =
-            SCNDebugOptions(rawValue: ARSCNDebugOptions.showWorldOrigin.rawValue |
-                ARSCNDebugOptions.showFeaturePoints.rawValue)
+//        self.sceneView.debugOptions =
+//            SCNDebugOptions(rawValue: ARSCNDebugOptions.showWorldOrigin.rawValue |
+//                ARSCNDebugOptions.showFeaturePoints.rawValue)
         
         
         let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(sender:)))
@@ -81,6 +83,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             ball.physicsBody = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(node: ball))
             ball.physicsBody?.isAffectedByGravity = false
             ball.physicsBody?.restitution = 1
+            ball.physicsBody?.mass = 5
             placeBall = !placeBall
 
             ball.position = SCNVector3Make(cameraPos.x + (cameraDir.x * ballDistanceFromCamera), cameraPos.y + (cameraDir.y * ballDistanceFromCamera), cameraPos.z + (cameraDir.z * ballDistanceFromCamera))
@@ -135,7 +138,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     func launchBall() {
         let cameraDir:SCNVector3 = getUserVector().0
-        ball.physicsBody?.applyForce(SCNVector3Make(cameraDir.x * 10, cameraDir.y * 10, cameraDir.z * 10), asImpulse: true)
+        ball.physicsBody?.applyForce(SCNVector3Make(cameraDir.x * ballImpulse, cameraDir.y * ballImpulse, cameraDir.z * ballImpulse), asImpulse: true)
         placeBall = !placeBall
     }
     
