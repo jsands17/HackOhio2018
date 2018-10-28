@@ -64,6 +64,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     @objc func handleTap(sender: UITapGestureRecognizer) {
+        print(objectSelector)
         switch objectSelector {
         case 0:
             dropPillar(sender: sender)
@@ -103,24 +104,23 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                                              hitTestResult.worldTransform.columns.3.y,
                                              hitTestResult.worldTransform.columns.3.z)
         
-        let coneGeometry = SCNCone(topRadius: 0, bottomRadius: 0.05, height: 1.5)
-        coneGeometry.firstMaterial?.diffuse.contents = UIColor.red
-        let coneNode = SCNNode(geometry: coneGeometry)
-        coneNode.position = SCNVector3Make(currentPosition.x,
-                                             currentPosition.y + (Float(coneGeometry.height) / 2),
+        let pillarGeometry = SCNCylinder(radius: 0.1, height: 0.5)
+        pillarGeometry.firstMaterial?.diffuse.contents = UIColor.green
+        let pillarNode = SCNNode(geometry: pillarGeometry)
+        pillarNode.position = SCNVector3Make(currentPosition.x,
+                                             currentPosition.y + (Float(pillarGeometry.height) / 2),
                                              currentPosition.z)
         
-        coneNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
-        coneNode.physicsBody?.mass = 2.0
-        coneNode.physicsBody?.friction = 0.8
-        coneNode.runAction(SCNAction.customAction(duration: 0.5, action: { (node, elapsedTime) -> () in
+        pillarNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        pillarNode.physicsBody?.mass = 2.0
+        pillarNode.physicsBody?.friction = 0.8
+        pillarNode.runAction(SCNAction.customAction(duration: 0.5, action: { (node, elapsedTime) -> () in
             if(node.position.y < -2) {
                 node.removeFromParentNode()
             }
-            print("Pillar is alive.")
         }))
-        sceneView.scene.rootNode.addChildNode(coneNode)
-        pillars.append(coneNode)
+        sceneView.scene.rootNode.addChildNode(pillarNode)
+        pillars.append(pillarNode)
     }
     
     /*/////////////////////////////////////////////////////
@@ -190,26 +190,24 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                                              hitTestResult.worldTransform.columns.3.y,
                                              hitTestResult.worldTransform.columns.3.z)
         
-        let pillarGeometry = SCNCylinder(radius: 0.1, height: 0.5)
-        pillarGeometry.firstMaterial?.diffuse.contents = UIColor.green
-        let pillarNode = SCNNode(geometry: pillarGeometry)
-        pillarNode.position = SCNVector3Make(currentPosition.x,
-                                             currentPosition.y + (Float(pillarGeometry.height) / 2),
-                                             currentPosition.z)
+        let coneGeometry = SCNCone(topRadius: 0, bottomRadius: 0.05, height: 1.5)
+        coneGeometry.firstMaterial?.diffuse.contents = UIColor.red
+        let coneNode = SCNNode(geometry: coneGeometry)
+        coneNode.position = SCNVector3Make(currentPosition.x,
+                                           currentPosition.y + (Float(coneGeometry.height) / 2),
+                                           currentPosition.z)
         
-        pillarNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
-        pillarNode.physicsBody?.mass = 2.0
-        pillarNode.physicsBody?.friction = 0.8
-        pillarNode.runAction(SCNAction.customAction(duration: 0.5, action: { (node, elapsedTime) -> () in
+        coneNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        coneNode.physicsBody?.mass = 2.0
+        coneNode.physicsBody?.friction = 0.8
+        coneNode.runAction(SCNAction.customAction(duration: 0.5, action: { (node, elapsedTime) -> () in
             if(node.position.y < -2) {
                 node.removeFromParentNode()
             }
-            print("Pillar is alive.")
         }))
-        sceneView.scene.rootNode.addChildNode(pillarNode)
-        pillars.append(pillarNode)
+        sceneView.scene.rootNode.addChildNode(coneNode)
+        pillars.append(coneNode)
     }
-    
     
     /*/////////////////////////////////////////////////////
      Load Scene and Renderer Functions
