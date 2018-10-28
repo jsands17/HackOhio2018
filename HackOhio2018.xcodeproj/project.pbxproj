@@ -24,6 +24,7 @@
 		C542CC932184BFFE007AE919 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C542CC962184BFFE007AE919 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C542CC982184BFFE007AE919 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C5F265D1218539C2006E082E /* pringles.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = pringles.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +62,7 @@
 				C542CC8E2184BFFD007AE919 /* ViewController.swift */,
 				C542CC902184BFFD007AE919 /* Main.storyboard */,
 				C542CC932184BFFE007AE919 /* Assets.xcassets */,
+				C5F265D1218539C2006E082E /* pringles.png */,
 				C542CC952184BFFE007AE919 /* LaunchScreen.storyboard */,
 				C542CC982184BFFE007AE919 /* Info.plist */,
 			);

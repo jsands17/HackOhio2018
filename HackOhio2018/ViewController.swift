@@ -22,7 +22,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var placeBall: Bool! = true
     var ballDistanceFromCamera: Float = 1
     var ballImpulse: Float = 100
-    var ballMass: CGFloat = 15
+    var ballMass: CGFloat = 5
     
     var cameraLoc: float4!
     var detectedPlanes: [String : SCNNode] = [:]
@@ -106,7 +106,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                                              hitTestResult.worldTransform.columns.3.z)
         
         let pillarGeometry = SCNCylinder(radius: 0.1, height: 0.5)
-        pillarGeometry.firstMaterial?.diffuse.contents = "pringles.png"
+        let material = SCNMaterial()
+        material.diffuse.contents = UIImage(named: "pringles.png")
+        pillarGeometry.materials = [material]
+        
         let pillarNode = SCNNode(geometry: pillarGeometry)
         pillarNode.position = SCNVector3Make(currentPosition.x,
                                              currentPosition.y + (Float(pillarGeometry.height) / 2),
