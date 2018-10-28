@@ -21,6 +21,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var ball = SCNNode()
     var placeBall: Bool! = true
     var ballDistanceFromCamera: Float = 1
+    var ballImpulse: Float = 100
     
     var cameraLoc: float4!
     var detectedPlanes: [String : SCNNode] = [:]
@@ -43,6 +44,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         // Set the scene to the view
         sceneView.scene = scene
         sceneView.delegate = self
+        sceneView.autoenablesDefaultLighting = true
         
         let wait:SCNAction = SCNAction.wait(duration: 2)
         let runAfter:SCNAction = SCNAction.run { _ in
@@ -52,9 +54,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         let seq:SCNAction = SCNAction.sequence([wait, runAfter])
         sceneView.scene.rootNode.runAction(seq)
         
-        self.sceneView.debugOptions =
-            SCNDebugOptions(rawValue: ARSCNDebugOptions.showWorldOrigin.rawValue |
-                ARSCNDebugOptions.showFeaturePoints.rawValue)
+//        self.sceneView.debugOptions =
+//            SCNDebugOptions(rawValue: ARSCNDebugOptions.showWorldOrigin.rawValue |
+//                ARSCNDebugOptions.showFeaturePoints.rawValue)
         
         
         let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(sender:)))
@@ -144,8 +146,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             ball.physicsBody = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(node: ball))
             ball.physicsBody?.isAffectedByGravity = false
             ball.physicsBody?.restitution = 1
-            ball.position = SCNVector3Make(0, 0, -0.5)
-            sceneView.pointOfView?.addChildNode(ball)
+            ball.physicsBody?.mass = 5
             placeBall = !placeBall
             
             ball.position = SCNVector3Make(cameraPos.x + (cameraDir.x * ballDistanceFromCamera), cameraPos.y + (cameraDir.y * ballDistanceFromCamera), cameraPos.z + (cameraDir.z * ballDistanceFromCamera))
@@ -165,8 +166,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     func launchBall() {
         let cameraDir:SCNVector3 = getUserVector().0
+        ball.physicsBody?.applyForce(SCNVector3Make(cameraDir.x * ballImpulse, cameraDir.y * ballImpulse, cameraDir.z * ballImpulse), asImpulse: true)
         
-        ball.physicsBody?.applyForce(SCNVector3Make(cameraDir.x * 10, cameraDir.y * 10, cameraDir.z * 10), asImpulse: true)
         ball.runAction(SCNAction.sequence([
             SCNAction.wait(duration: 5.0),
             SCNAction.removeFromParentNode()
@@ -231,7 +232,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         planeNode.position = SCNVector3Make(planeAnchor.center.x,
                                             planeAnchor.center.y,
                                             planeAnchor.center.z)
-        planeNode.opacity = 0.3
+        planeNode.opacity = 0.0
         planeNode.rotation = SCNVector4Make(1, 0, 0, -Float.pi / 2.0)
         
         
@@ -248,13 +249,16 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         guard let planeNode = detectedPlanes[planeAnchor.identifier.uuidString] else { return }
         
         let planeGeometry = planeNode.geometry as! SCNPlane
-        planeGeometry.width = CGFloat(planeAnchor.extent.x)
-        planeGeometry.height = CGFloat(planeAnchor.extent.z)
+//        planeGeometry.width = CGFloat(planeAnchor.extent.x)
+//        planeGeometry.height = CGFloat(planeAnchor.extent.z)
+        planeGeometry.width = 100
+        planeGeometry.height = 100
         planeNode.position = SCNVector3Make(planeAnchor.center.x,
                                             planeAnchor.center.y,
                                             planeAnchor.center.z)
         
-        let box = SCNBox(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z), length: 0.001, chamferRadius: 0)
+        //let box = SCNBox(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z), length: 0.001, chamferRadius: 0)
+        let box = SCNBox(width: 100, height: 100, length: 0.001, chamferRadius: 0)
         
         planeNode.physicsBody?.physicsShape = SCNPhysicsShape(geometry: box, options: nil)
     }
