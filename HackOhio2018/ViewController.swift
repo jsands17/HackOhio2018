@@ -20,6 +20,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var placeBall: Bool! = true
     var ballDistanceFromCamera: Float = 1
     var ballImpulse: Float = 100
+    var ballMass: CGFloat = 15
     
     var cameraLoc: float4!
     var detectedPlanes: [String : SCNNode] = [:]
@@ -92,7 +93,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                                              hitTestResult.worldTransform.columns.3.z)
         
         let pillarGeometry = SCNCylinder(radius: 0.1, height: 0.5)
-        pillarGeometry.firstMaterial?.diffuse.contents = UIColor.green
+        pillarGeometry.firstMaterial?.diffuse.contents = "pringles.png"
         let pillarNode = SCNNode(geometry: pillarGeometry)
         pillarNode.position = SCNVector3Make(currentPosition.x,
                                              currentPosition.y + (Float(pillarGeometry.height) / 2),
@@ -105,7 +106,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             if(node.position.y < -2) {
                 node.removeFromParentNode()
             }
-            print("Pillar is alive.")
         }))
         sceneView.scene.rootNode.addChildNode(pillarNode)
         pillars.append(pillarNode)
@@ -126,7 +126,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             ball.physicsBody = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(node: ball))
             ball.physicsBody?.isAffectedByGravity = false
             ball.physicsBody?.restitution = 1
-            ball.physicsBody?.mass = 5
+            ball.physicsBody?.mass = ballMass
             placeBall = !placeBall
 
             ball.position = SCNVector3Make(cameraPos.x + (cameraDir.x * ballDistanceFromCamera), cameraPos.y + (cameraDir.y * ballDistanceFromCamera), cameraPos.z + (cameraDir.z * ballDistanceFromCamera))
@@ -206,6 +206,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         let box = SCNBox(width: 100, height: 100, length: 0.001, chamferRadius: 0)
         
         planeNode.physicsBody?.physicsShape = SCNPhysicsShape(geometry: box, options: nil)
+        planeNode.physicsBody?.friction = 0.75
     }
     
     /*/////////////////////////////////////////////////////
